@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Inventori Gudang v2
 
-## Getting Started
+Aplikasi pencatatan barang dan lokasi gudang versi optimal. Dibuat menggunakan arsitektur modular Next.js 16 (App Router) dan teroptimasi untuk deployment ke Vercel dengan database Postgres (Neon/Vercel Postgres serverless).
 
-First, run the development server:
+## Perbaikan dari Versi Awal
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Optimasi Vercel Postgres:** Menggunakan `@neondatabase/serverless` dan `@prisma/adapter-neon` untuk connection pooling yang andal saat serverless scale.
+- **Model Data Target:** Struktur database lengkap dengan model `User`, `Item` (SKU unik), `WarehouseLocation`, `StockBalance` (saldo per lokasi), dan `StockMovement` (riwayat mutasi).
+- **Validasi Zod:** Schema validation ketat untuk SKU, nama, lokasi, dan mutasi stok di `lib/schemas.ts`.
+- **Quality Gate:** Lint dan Typecheck dikonfigurasi untuk lolos build otomatis di CI/CD.
+- **Prisma Generate Otomatis:** Script `postinstall` untuk menjamin client selalu ter-generate otomatis saat deploy.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup Lokal
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prasyarat
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 20+
+- Database PostgreSQL lokal atau cloud (misal Neon.tech)
+- Git
 
-## Learn More
+### Langkah Setup
 
-To learn more about Next.js, take a look at the following resources:
+1. **Install dependencies**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm install
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Setup environment**
 
-## Deploy on Vercel
+   Salin `.env.example` ke `.env` dan sesuaikan URL koneksi database:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   cp .env.example .env
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   Ubah isi `.env` sesuai database kamu:
+   ```env
+   DATABASE_URL="postgresql://user:password@localhost:5432/inventori_gudang?sslmode=require"
+   ```
+
+3. **Generate Prisma Client**
+
+   ```bash
+   npm run db:generate
+   ```
+
+4. **Jalankan migrasi pertama**
+
+   ```bash
+   npm run db:migrate
+   ```
+
+5. **Jalankan development server**
+
+   ```bash
+   npm run dev
+   ```
+
+   Buka [http://localhost:3000](http://localhost:3000).
+
+## Dokumentasi Proyek
+
+Panduan arsitektur, PRD, dan panduan AI agent tersedia di folder `docs/`:
+
+- [docs/audit.md](docs/audit.md) — audit kode proyek awal
+- [docs/best-practice/prd.md](docs/best-practice/prd.md) — Product Requirement Document (PRD)
+- [docs/best-practice/design.md](docs/best-practice/design.md) — dokumen desain teknis dan target arsitektur
+- [docs/best-practice/sprint.md](docs/best-practice/sprint.md) — status sprint dan rencana pekerjaan
+- [docs/best-practice/ai-agent-guide.md](docs/best-practice/ai-agent-guide.md) — panduan kolaborasi menggunakan AI Agent
+
+## Kontribusi & Pekerjaan Lanjutan
+
+Pekerjaan saat ini telah menyelesaikan **Sprint 0** (stabilisasi fondasi dan setup) dan memulai **Sprint 1** (Zod validation schemas). Rencana kerja berikutnya:
+1. Hubungkan schema Zod ke Server Action untuk mutasi masuk.
+2. Tambahkan test unit untuk validasi barang.
+3. Impor/migrasikan data lama secara aman ke model baru.

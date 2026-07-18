@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  passwordHash String @default("")
+  role      String   @default("petugas")
+  createdAt DateTime @default(now())
+
+  stockMovements StockMovement[]
+}
+
+model ItemCategory {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Item {
+  id        Int      @id @default(autoincrement())
+  sku       String   @unique
+  name      String
+  unit      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  stockBalances  StockBalance[]
+  stockMovements StockMovement[]
+}
+
+model WarehouseLocation {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  xPercent  Float?
+  yPercent  Float?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  stockBalancesHere         StockBalance[]
+  stockMovementsSource      StockMovement[] @relation("MovementSource")
+  stockMovementsDestination StockMovement[] @relation("MovementDestination")
+}
+
+model StockBalance {
+  itemId     Int
+  locationId Int
+  quantity   Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  item     Item              @relation(fields: [itemId], references: [id])
+  location WarehouseLocation @relation(fields: [locationId], references: [id])
+
+  @@unique([itemId, locationId])
+  @@index([itemId])
+  @@index([locationId])
+}
+
+model StockMovement {
+  id                    Int       @id @default(autoincrement())
+  itemId                Int
+  type                  String
+  quantity              Int
+  sourceLocationId      Int?
+  destinationLocationId Int?
+  note                  String?
+  createdById           Int
+  createdAt             DateTime  @default(now())
+
+  item                Item               @relation(fields: [itemId], references: [id])
+  sourceLocation      WarehouseLocation? @relation("MovementSource", fields: [sourceLocationId], references: [id])
+  destinationLocation WarehouseLocation? @relation("MovementDestination", fields: [destinationLocationId], references: [id])
+  createdBy           User               @relation(fields: [createdById], references: [id])
+
+  @@index([itemId])
+  @@index([createdAt])
+}
+
