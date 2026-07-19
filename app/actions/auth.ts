@@ -5,10 +5,10 @@ import { prisma } from '@/lib/prisma';
 import { hashPassword, encryptSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
-export async function loginAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
+export async function loginAction(payload: Record<string, string>): Promise<{ success: boolean; error?: string }> {
   try {
-    const email = formData.get('email')?.toString().trim().toLowerCase() ?? '';
-    const password = formData.get('password')?.toString() ?? '';
+    const email = payload.email?.trim().toLowerCase() ?? '';
+    const password = payload.password ?? '';
 
     if (!email || !password) {
       return { success: false, error: 'Email dan password wajib diisi.' };
@@ -44,7 +44,8 @@ export async function loginAction(formData: FormData): Promise<{ success: boolea
     });
 
     return { success: true };
-  } catch {
+  } catch (error) {
+    console.error('LOGIN_ERROR:', error);
     return { success: false, error: 'Terjadi kesalahan sistem saat login.' };
   }
 }

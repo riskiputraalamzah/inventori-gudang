@@ -15,9 +15,11 @@ export default function LoginPage() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
+    const email = formData.get('email')?.toString() ?? '';
+    const password = formData.get('password')?.toString() ?? '';
 
     startTransition(async () => {
-      const result = await loginAction(formData);
+      const result = await loginAction({ email, password });
       if (result.success) {
         router.push('/');
         router.refresh();
