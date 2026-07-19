@@ -26,7 +26,18 @@ async function createClient(): Promise<PrismaClient> {
     // Cloud Deployment (Neon Serverless / Vercel Postgres)
     const { Pool } = await import('@neondatabase/serverless') as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     const { PrismaNeon } = await import('@prisma/adapter-neon');
-    const pool = new Pool({ connectionString: url });
+
+    // Parse URL manually to bypass Vercel serverless bundler shadowing
+    const dbUrl = new URL(url);
+    const pool = new Pool({
+      host: dbUrl.hostname,
+      user: dbUrl.username,
+      password: decodeURIComponent(dbUrl.password),
+      database: dbUrl.pathname.substring(1),
+      port: dbUrl.port ? parseInt(dbUrl.port, 10) : 5432,
+      ssl: true,
+    });
+
     return new PrismaClient({ adapter: new PrismaNeon(pool) } as never) as PrismaClient;
   }
 
