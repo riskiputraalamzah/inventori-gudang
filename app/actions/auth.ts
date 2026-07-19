@@ -46,7 +46,8 @@ export async function loginAction(payload: Record<string, string>): Promise<{ su
     return { success: true };
   } catch (error) {
     console.error('LOGIN_ERROR:', error);
-    return { success: false, error: 'Terjadi kesalahan sistem saat login.' };
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: `Login gagal: ${errMsg}` };
   }
 }
 
