@@ -3,6 +3,12 @@ import { PrismaClient } from '@/app/generated/prisma/index.js';
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 async function createClient(): Promise<PrismaClient> {
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      await import('dotenv/config');
+    } catch {}
+  }
+
   const url =
     process.env.DATABASE_URL ||
     process.env.POSTGRES_PRISMA_URL ||
