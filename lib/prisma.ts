@@ -22,12 +22,10 @@ async function createClient(): Promise<PrismaClient> {
 
   if (!isLocal) {
     // Cloud Deployment (Neon Serverless / Vercel Postgres)
-    const { neon } = await import('@neondatabase/serverless') as {
-      neon: (connectionString: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    };
+    const { Pool } = await import('@neondatabase/serverless') as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     const { PrismaNeon } = await import('@prisma/adapter-neon');
-    const sql = neon(url);
-    return new PrismaClient({ adapter: new PrismaNeon(sql) } as never) as PrismaClient;
+    const pool = new Pool({ connectionString: url });
+    return new PrismaClient({ adapter: new PrismaNeon(pool) } as never) as PrismaClient;
   }
 
   // Local Development (PostgreSQL lokal via pg pool adapter)
