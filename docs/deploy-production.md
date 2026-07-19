@@ -22,12 +22,11 @@ Proyek `inventori-gudang-v2` dirancang agar kompatibel penuh dengan deploy Verce
 3. **Deploy & Migrasi Otomatis:**
    - Klik **Deploy**
    - Vercel akan otomatis build project, menjalankan generate client, dan deploy.
-   - Karena file database Neon adalah cloud, jalankan migrasi schema dan seed default data sekali saja melalui console lokal Anda:
+   - Karena file database Neon adalah cloud, jalankan migrasi schema dan seed data secara bersamaan sekali saja melalui console lokal Anda:
      ```powershell
      $env:DATABASE_URL = "connection-string-neon-anda"
      npx prisma db push
-     npx tsx seed-categories.ts
-     npx tsx seed-users.ts
+     npm run db:seed
      ```
 
 ## 2. Strategi Backup & Restore Database (Neon)
@@ -54,7 +53,7 @@ pg_restore -d "postgresql://user:password@host/neondb?sslmode=require" -v "gudan
 
 ## 3. Akun Kredensial Default
 
-Setelah database di-seed (`seed-users.ts`), akun berikut siap digunakan untuk login awal:
+Setelah database di-seed (`npm run db:seed`), akun berikut siap digunakan untuk login awal:
 
 | Peran | Email | Password | Hak Akses |
 | --- | --- | --- | --- |

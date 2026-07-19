@@ -77,7 +77,7 @@ Setiap item harus punya:
 | Tambah autentikasi dan role | Selesai | Cookie session berbasis encrypt token Web Crypto API dengan role admin & petugas. Halaman login linear gradient dark theme. |
 | Tambah audit trail pengguna | Selesai | `StockMovement` mencatat user ID yang membuat transaksi secara dinamis dari user session yang login. |
 | Tambah CI GitHub Actions | Selesai | CI workflow `.github/workflows/ci.yml` menjalankan npm ci, prisma generate, lint, typecheck, dan unit test otomatis. |
-| Tambah backup dan panduan deploy | Selesai | Prosedur backup database Neon (PITR, snapshots, pg_dump/restore) dan deploy Vercel tercatat di `docs/deploy-production.md`. |
+| Tambah backup dan panduan deploy | Selesai | Prosedur backup database Neon (PITR, snapshots, pg_dump/restore) dan deploy Vercel tercatat di `docs/deploy-production.md`. Seed data disatukan di file permanen `seed.ts`. |
 | Tinjau dependency dan vulnerability | Selesai | CLI dan ORM dependency bersih dari warning TypeScript/ESLint. |
 
 **Verifikasi sprint:** pull request contoh lulus CI; pengguna tanpa role tulis ditolak.

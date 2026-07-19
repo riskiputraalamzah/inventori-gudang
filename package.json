@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
+    "db:seed": "npx tsx seed.ts",
     "postinstall": "prisma generate",
     "test": "vitest run tests/validation.test.ts",
     "test:integration": "vitest run tests/inventory.integration.test.ts"
