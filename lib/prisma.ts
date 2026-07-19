@@ -3,27 +3,32 @@ import { PrismaClient } from '@/app/generated/prisma/index.js';
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 async function createClient(): Promise<PrismaClient> {
-  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+  const url =
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL;
+
   if (!url) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return new PrismaClient({} as any) as PrismaClient;
+    throw new Error('DATABASE_URL, POSTGRES_PRISMA_URL, atau POSTGRES_URL belum dikonfigurasi di environment variable.');
   }
 
-  // Cloud Deployment (Neon Serverless/Vercel Postgres)
-  if (url.includes('neon.tech')) {
-    const { neon } = await import('@neondatabase/serverless') as any; /* eslint-disable-line @typescript-eslint/no-explicit-any */
-    const { PrismaNeon } = await import('@prisma/adapter-neon') as any; /* eslint-disable-line @typescript-eslint/no-explicit-any */
+  const isLocal = url.includes('localhost') || url.includes('127.0.0.1');
+
+  if (!isLocal) {
+    // Cloud Deployment (Neon Serverless / Vercel Postgres)
+    const { neon } = await import('@neondatabase/serverless') as {
+      neon: (connectionString: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    };
+    const { PrismaNeon } = await import('@prisma/adapter-neon');
     const sql = neon(url);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return new PrismaClient({ adapter: new PrismaNeon(sql) } as any) as PrismaClient;
+    return new PrismaClient({ adapter: new PrismaNeon(sql) } as never) as PrismaClient;
   }
 
-  // Local Development (PostgreSQL lokal via pg adapter)
-  const { Pool } = await import('pg') as any; /* eslint-disable-line @typescript-eslint/no-explicit-any */
-  const { PrismaPg } = await import('@prisma/adapter-pg') as any; /* eslint-disable-line @typescript-eslint/no-explicit-any */
+  // Local Development (PostgreSQL lokal via pg pool adapter)
+  const { Pool } = await import('pg');
+  const { PrismaPg } = await import('@prisma/adapter-pg');
   const pool = new Pool({ connectionString: url });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new PrismaClient({ adapter: new PrismaPg(pool) } as any) as PrismaClient;
+  return new PrismaClient({ adapter: new PrismaPg(pool) } as never) as PrismaClient;
 }
 
 // Defer initialization to runtime so client bundler doesn\t load database modules

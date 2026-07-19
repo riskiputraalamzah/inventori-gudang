@@ -16,7 +16,7 @@ Proyek `inventori-gudang-v2` dirancang agar kompatibel penuh dengan deploy Verce
    - Klik **Add New Project** dan pilih repository `inventori-gudang-v2`
    - Pilih Framework Preset: **Next.js**
    - Buka bagian **Environment Variables** dan tambahkan:
-     - `DATABASE_URL`: Isi dengan connection string Neon Anda
+     - `DATABASE_URL` (atau `POSTGRES_PRISMA_URL` / `POSTGRES_URL`): Isi dengan connection string Neon/Vercel Postgres Anda
      - `SESSION_SECRET`: Kunci enkripsi session acak (minimal 32 karakter)
 
 3. **Deploy & Migrasi Otomatis:**
