@@ -7,6 +7,11 @@ import { revalidatePath } from 'next/cache';
 
 export async function loginAction(payload: Record<string, string>): Promise<{ success: boolean; error?: string }> {
   try {
+    const rawUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL || '';
+    // Sanitize connection string to show only host and db name for debugging
+    const sanitizedUrl = rawUrl.replace(/:[^@/]+@/, ':***@');
+    console.log('SANITY_CHECK_DATABASE_URL:', sanitizedUrl);
+
     const email = payload.email?.trim().toLowerCase() ?? '';
     const password = payload.password ?? '';
 
@@ -47,7 +52,9 @@ export async function loginAction(payload: Record<string, string>): Promise<{ su
   } catch (error) {
     console.error('LOGIN_ERROR:', error);
     const errMsg = error instanceof Error ? error.message : String(error);
-    return { success: false, error: `Login gagal: ${errMsg}` };
+    const rawUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL || '';
+    const sanitizedUrl = rawUrl.replace(/:[^@/]+@/, ':***@');
+    return { success: false, error: `Login gagal: ${errMsg} (URL: ${sanitizedUrl})` };
   }
 }
 
