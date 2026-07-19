@@ -9,7 +9,7 @@ async function createClient(): Promise<PrismaClient> {
     } catch {}
   }
 
-  const url =
+  let url =
     process.env.DATABASE_URL ||
     process.env.POSTGRES_PRISMA_URL ||
     process.env.POSTGRES_URL;
@@ -17,6 +17,8 @@ async function createClient(): Promise<PrismaClient> {
   if (!url) {
     throw new Error('DATABASE_URL, POSTGRES_PRISMA_URL, atau POSTGRES_URL belum dikonfigurasi di environment variable.');
   }
+
+  url = url.trim();
 
   const isLocal = url.includes('localhost') || url.includes('127.0.0.1');
 
