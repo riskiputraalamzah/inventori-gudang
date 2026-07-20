@@ -1,5 +1,7 @@
 # Inventori Gudang v2
 
+> 🌐 **Live Demo:** [https://inventori-gudang.vercel.app/](https://inventori-gudang.vercel.app/)
+
 Aplikasi pencatatan barang dan lokasi gudang versi optimal. Dibuat menggunakan arsitektur modular Next.js 16 (App Router) dan teroptimasi untuk deployment ke Vercel dengan database Postgres (Neon/Vercel Postgres serverless).
 
 ## Screenshots
@@ -214,3 +216,4 @@ Jika ada pertanyaan atau issue:
 ---
 
 **Built with ❤️ using Next.js + Prisma + Neon**
+
