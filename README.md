@@ -7,15 +7,57 @@ Aplikasi pencatatan barang dan lokasi gudang versi optimal. Dibuat menggunakan a
 ## Screenshots
 
 ### Halaman Login
-![Login Page](public/image/login.png)
+<table>
+<tr>
+<td width="60%">
+<img src="public/image/login.png" alt="Login Desktop"/>
+</td>
+<td width="40%">
+<img src="public/image/login-mobile.png" alt="Login Mobile"/>
+</td>
+</tr>
+<tr>
+<td align="center"><b>Desktop View</b></td>
+<td align="center"><b>Mobile View</b></td>
+</tr>
+</table>
+
 *Halaman login dengan tema dark modern dan gradient accent*
 
 ### Dashboard Admin
-![Dashboard Admin](public/image/admin.png)
+<table>
+<tr>
+<td width="60%">
+<img src="public/image/admin.png" alt="Admin Dashboard Desktop"/>
+</td>
+<td width="40%">
+<img src="public/image/admin-mobile.png" alt="Admin Dashboard Mobile"/>
+</td>
+</tr>
+<tr>
+<td align="center"><b>Desktop View</b></td>
+<td align="center"><b>Mobile View</b></td>
+</tr>
+</table>
+
 *Dashboard admin dengan akses penuh ke manajemen kategori, lokasi, dan mutasi stok*
 
 ### Dashboard Petugas
-![Dashboard Petugas](public/image/petugas.png)
+<table>
+<tr>
+<td width="60%">
+<img src="public/image/petugas.png" alt="Petugas Dashboard Desktop"/>
+</td>
+<td width="40%">
+<img src="public/image/petugas-mobile.png" alt="Petugas Dashboard Mobile"/>
+</td>
+</tr>
+<tr>
+<td align="center"><b>Desktop View</b></td>
+<td align="center"><b>Mobile View</b></td>
+</tr>
+</table>
+
 *Dashboard petugas dengan fokus pada pencatatan mutasi barang dan monitoring stok*
 
 ## Perbaikan dari Versi Awal
@@ -216,4 +258,5 @@ Jika ada pertanyaan atau issue:
 ---
 
 **Built with ❤️ using Next.js + Prisma + Neon**
+
 
