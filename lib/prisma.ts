@@ -31,19 +31,17 @@ async function createClient(): Promise<PrismaClient> {
 
   if (!isLocal) {
     // Cloud Deployment (Neon Serverless / Vercel Postgres)
-    const { Pool, neonConfig } = await import('@neondatabase/serverless');
+    const { neonConfig } = await import('@neondatabase/serverless');
     const { PrismaNeon } = await import('@prisma/adapter-neon');
 
     // Configure neonConfig for Vercel Edge environment
     if (typeof WebSocket !== 'undefined') {
       neonConfig.webSocketConstructor = WebSocket;
     }
-    
-    // Use connection string directly for pooled connection
-    const pool = new Pool({ connectionString: url });
 
-    return new PrismaClient({ 
-      adapter: new PrismaNeon(pool),
+    // Pass connection string as PoolConfig object to PrismaNeon adapter
+    return new PrismaClient({
+      adapter: new PrismaNeon({ connectionString: url }),
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
     });
   }
@@ -52,8 +50,8 @@ async function createClient(): Promise<PrismaClient> {
   const { Pool } = await import('pg');
   const { PrismaPg } = await import('@prisma/adapter-pg');
   const pool = new Pool({ connectionString: url });
-  
-  return new PrismaClient({ 
+
+  return new PrismaClient({
     adapter: new PrismaPg(pool),
     log: ['query', 'error', 'warn']
   });
@@ -65,7 +63,7 @@ let clientPromise: Promise<PrismaClient> | null = null;
 export const prisma = new Proxy({} as PrismaClient, {
   get(target, prop) {
     if (prop === 'then') return undefined;
-    
+
     if (!globalForPrisma.prisma) {
       if (!clientPromise) {
         clientPromise = createClient().then((c) => {
@@ -81,7 +79,8 @@ export const prisma = new Proxy({} as PrismaClient, {
           // Handlers for model method calls (e.g. prisma.user.findUnique(...))
           return (...args: unknown[]) => {
             return clientPromise!.then((c) => {
-              const model = (c as Record<string, Record<string, (...a: unknown[]) => unknown>>)[prop as string];
+              const client = c as unknown as Record<string, Record<string, (...a: unknown[]) => unknown>>;
+              const model = client[prop as string];
               if (!model) return undefined;
               const fn = model[modelProp as string];
               return typeof fn === 'function' ? fn.bind(model)(...args) : fn;
@@ -90,8 +89,9 @@ export const prisma = new Proxy({} as PrismaClient, {
         },
       });
     }
-    
-    const member = (globalForPrisma.prisma as Record<string, unknown>)[prop as string];
+
+    const client = globalForPrisma.prisma as unknown as Record<string, unknown>;
+    const member = client[prop as string];
     return typeof member === 'function' ? member.bind(globalForPrisma.prisma) : member;
   },
 });
