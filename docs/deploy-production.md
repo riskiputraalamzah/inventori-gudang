@@ -1,63 +1,159 @@
-# Panduan Deploy & Backup Production
+# Panduan Deploy Production (Vercel + Neon)
 
-## 1. Rencana Deploy ke Vercel
+## Checklist Pre-Deploy
 
-Proyek `inventori-gudang-v2` dirancang agar kompatibel penuh dengan deploy Vercel + Neon Serverless PostgreSQL.
+### 1. Setup Database Neon
 
-### Langkah-Langkah Deploy
+1. Buat database di [Neon Console](https://console.neon.tech)
+2. **PENTING**: Salin connection string dengan endpoint **POOLED** (`-pooler`)
+   ```
+   ✅ BENAR: postgresql://user:pass@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/dbname?sslmode=require
+   ❌ SALAH: postgresql://user:pass@ep-xxx.ap-southeast-1.aws.neon.tech/dbname
+   ```
 
-1. **Buat Database Neon:**
-   - Masuk ke dashboard [Neon.tech](https://neon.tech)
-   - Buat project baru dan pilih Region terdekat (misal: Singapore)
-   - Salin connection string PostgreSQL yang diberikan (format: `postgresql://user:password@host/neondb?sslmode=require`)
+3. **Hapus parameter `channel_binding`** jika ada:
+   ```
+   ❌ SALAH: ?sslmode=require&channel_binding=require
+   ✅ BENAR: ?sslmode=require
+   ```
 
-2. **Hubungkan Repository ke Vercel:**
-   - Hubungkan akun GitHub Anda ke [Vercel](https://vercel.com)
-   - Klik **Add New Project** dan pilih repository `inventori-gudang-v2`
-   - Pilih Framework Preset: **Next.js**
-   - Buka bagian **Environment Variables** dan tambahkan:
-     - `DATABASE_URL` (atau `POSTGRES_PRISMA_URL` / `POSTGRES_URL`): Isi dengan connection string Neon/Vercel Postgres Anda
-     - `SESSION_SECRET`: Kunci enkripsi session acak (minimal 32 karakter)
+### 2. Setup Environment Variables di Vercel
 
-3. **Deploy & Migrasi Otomatis:**
-   - Klik **Deploy**
-   - Vercel akan otomatis build project, menjalankan generate client, dan deploy.
-   - Karena file database Neon adalah cloud, jalankan migrasi schema dan seed data secara bersamaan sekali saja melalui console lokal Anda:
-     ```powershell
-     $env:DATABASE_URL = "connection-string-neon-anda"
-     npx prisma db push
-     npm run db:seed
-     ```
+Buka Vercel Dashboard → Project Settings → Environment Variables:
 
-## 2. Strategi Backup & Restore Database (Neon)
-
-Neon menyediakan fitur backup bawaan yang sangat andal bernama **Point-in-Time Recovery (PITR)** dan **Snapshots**.
-
-### Fitur Backup Neon
-- **Automatic Backups:** Neon secara otomatis mem-backup data Anda secara real-time. Anda dapat me-restore database ke titik waktu mana pun (hingga menit) dalam jangka waktu tertentu (tergantung tier).
-- **Manual Snapshots:** Anda dapat membuat snapshot database secara manual sebelum melakukan migrasi besar.
-
-### Prosedur Manual Backup (pg_dump)
-
-Jika Anda ingin menyimpan salinan backup fisik di penyimpanan lokal/awan pribadi:
-
-**Backup (Dump):**
-```powershell
-pg_dump "postgresql://user:password@host/neondb?sslmode=require" -F c -b -v -f "gudang_backup_2026-07-19.dump"
+```env
+DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/dbname?sslmode=require
+SESSION_SECRET=your-random-32-character-secret-key-here
+NODE_ENV=production
 ```
 
-**Restore:**
-```powershell
-pg_restore -d "postgresql://user:password@host/neondb?sslmode=require" -v "gudang_backup_2026-07-19.dump"
+**Tips:**
+- Generate `SESSION_SECRET` dengan: `openssl rand -base64 32`
+- Pastikan environment diterapkan untuk **Production**, **Preview**, dan **Development**
+
+### 3. Jalankan Migration di Production
+
+**Cara 1: Via Vercel CLI (Recommended)**
+```bash
+vercel env pull .env.production
+npx prisma migrate deploy
+npx prisma db seed  # opsional, jika butuh data awal
 ```
 
-## 3. Akun Kredensial Default
+**Cara 2: Via Neon SQL Editor**
+- Buka Neon Console → SQL Editor
+- Jalankan migration script secara manual
 
-Setelah database di-seed (`npm run db:seed`), akun berikut siap digunakan untuk login awal:
+### 4. Update Build Command di Vercel (Opsional)
 
-| Peran | Email | Password | Hak Akses |
-| --- | --- | --- | --- |
-| **Admin** | `admin@gudang.com` | `admin123` | Mutasi stok, Denah, Kelola Kategori, Kelola Lokasi |
-| **Petugas** | `petugas@gudang.com` | `petugas123` | Catat mutasi stok |
+Jika ingin migration otomatis saat deploy, ubah build command:
 
-Ganti password default setelah login pertama demi keamanan.
+**File: `package.json`**
+```json
+{
+  "scripts": {
+    "vercel-build": "prisma migrate deploy && prisma generate && next build"
+  }
+}
+```
+
+Lalu di Vercel Project Settings → Build & Development Settings:
+- **Build Command**: `npm run vercel-build`
+
+## Troubleshooting Login Error
+
+### Error: `[object ErrorEvent]`
+
+**Penyebab:**
+- WebSocket connection gagal ke Neon
+- `channel_binding=require` dalam connection string
+- Endpoint bukan `-pooler`
+
+**Solusi:**
+1. Cek `DATABASE_URL` di Vercel environment variables
+2. Pastikan formatnya: `postgresql://...@ep-xxx-pooler.region.aws.neon.tech/db?sslmode=require`
+3. Hapus `&channel_binding=require` jika ada
+4. Redeploy: `vercel --prod`
+
+### Error: `relation "User" does not exist`
+
+**Penyebab:** Migration belum dijalankan
+
+**Solusi:**
+```bash
+vercel env pull .env.production
+npx prisma migrate deploy
+```
+
+### Error: `password authentication failed`
+
+**Penyebab:** Password salah atau user belum di-seed
+
+**Solusi:**
+```bash
+npm run db:seed
+```
+
+Default credentials:
+- Admin: `admin@gudang.com` / `admin123`
+- Petugas: `petugas@gudang.com` / `petugas123`
+
+### Melihat Logs Runtime di Vercel
+
+1. Buka Vercel Dashboard → Project → Deployments
+2. Klik deployment terakhir
+3. Pilih tab **Functions** (bukan Runtime Logs)
+4. Klik function yang error → lihat **Real-time Logs**
+
+**Catatan:** Jika "No logs found", berarti error terjadi sebelum function execute (kemungkinan di Prisma initialization).
+
+## Verifikasi Deployment Berhasil
+
+### 1. Cek Database Connection
+```bash
+# Di local, dengan .env.production
+npx prisma db pull
+```
+
+### 2. Test Login di Production
+- Buka `https://your-app.vercel.app/login`
+- Login dengan: `admin@gudang.com` / `admin123`
+- Jika berhasil, akan redirect ke dashboard
+
+### 3. Cek Function Logs
+- Vercel Dashboard → Deployment → Functions
+- Pastikan tidak ada error WebSocket atau Prisma
+
+## Best Practices
+
+1. **Jangan hardcode secrets** di kode
+2. **Gunakan Neon Branching** untuk staging environment
+3. **Backup database** sebelum migration besar:
+   ```bash
+   pg_dump $DATABASE_URL > backup-$(date +%Y%m%d).sql
+   ```
+4. **Monitor Prisma Connection Pool** di Neon dashboard
+5. **Set connection timeout** jika perlu:
+   ```env
+   DATABASE_URL="...?connection_limit=10&pool_timeout=20"
+   ```
+
+## Rollback Plan
+
+Jika deployment gagal:
+
+1. **Revert ke deployment sebelumnya** di Vercel Dashboard
+2. **Rollback migration:**
+   ```bash
+   npx prisma migrate resolve --rolled-back <migration-name>
+   ```
+3. **Restore database dari backup:**
+   ```bash
+   psql $DATABASE_URL < backup-YYYYMMDD.sql
+   ```
+
+## Contact & Support
+
+- Vercel Status: https://vercel-status.com
+- Neon Status: https://neonstatus.com
+- Prisma Docs: https://www.prisma.io/docs

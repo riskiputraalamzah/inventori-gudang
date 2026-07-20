@@ -7,11 +7,6 @@ import { revalidatePath } from 'next/cache';
 
 export async function loginAction(payload: Record<string, string>): Promise<{ success: boolean; error?: string }> {
   try {
-    const rawUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL || '';
-    // Sanitize connection string to show only host and db name for debugging
-    const sanitizedUrl = rawUrl.replace(/:[^@/]+@/, ':***@');
-    console.log('SANITY_CHECK_DATABASE_URL:', sanitizedUrl);
-
     const email = payload.email?.trim().toLowerCase() ?? '';
     const password = payload.password ?? '';
 
@@ -50,11 +45,25 @@ export async function loginAction(payload: Record<string, string>): Promise<{ su
 
     return { success: true };
   } catch (error) {
-    console.error('LOGIN_ERROR:', error);
-    const errMsg = error instanceof Error ? error.message : String(error);
-    const rawUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL || '';
-    const sanitizedUrl = rawUrl.replace(/:[^@/]+@/, ':***@');
-    return { success: false, error: `Login gagal: ${errMsg} (URL: ${sanitizedUrl})` };
+    // Log detailed error to server console for debugging
+    console.error('LOGIN_ERROR_DETAIL:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error,
+      constructor: error?.constructor?.name,
+    });
+
+    // Additional detailed logging for debugging
+    if (error && typeof error === 'object') {
+      console.dir(error, { depth: null });
+    }
+
+    // Return safe error message to client
+    return { 
+      success: false, 
+      error: 'Login gagal. Silakan coba lagi atau hubungi administrator jika masalah berlanjut.' 
+    };
   }
 }
 

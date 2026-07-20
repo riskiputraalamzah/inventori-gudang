@@ -20,48 +20,52 @@ async function createClient(): Promise<PrismaClient> {
 
   url = url.trim();
 
+  // Remove channel_binding parameter if exists (not supported by @neondatabase/serverless)
+  if (url.includes('channel_binding=')) {
+    const urlObj = new URL(url);
+    urlObj.searchParams.delete('channel_binding');
+    url = urlObj.toString();
+  }
+
   const isLocal = url.includes('localhost') || url.includes('127.0.0.1');
 
   if (!isLocal) {
     // Cloud Deployment (Neon Serverless / Vercel Postgres)
-    const { Pool, neonConfig } = await import('@neondatabase/serverless') as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const { Pool, neonConfig } = await import('@neondatabase/serverless');
     const { PrismaNeon } = await import('@prisma/adapter-neon');
 
-    // Parse URL manually to bypass Vercel serverless bundler shadowing
-    const dbUrl = new URL(url);
+    // Configure neonConfig for Vercel Edge environment
+    if (typeof WebSocket !== 'undefined') {
+      neonConfig.webSocketConstructor = WebSocket;
+    }
+    
+    // Use connection string directly for pooled connection
+    const pool = new Pool({ connectionString: url });
 
-    // Force override global neonConfig and process env to bypass Next.js Webpack bundler stripping
-    neonConfig.wsConnectionUri = url;
-    process.env.PGHOST = dbUrl.hostname;
-    process.env.PGUSER = dbUrl.username;
-    process.env.PGPASSWORD = decodeURIComponent(dbUrl.password);
-    process.env.PGDATABASE = dbUrl.pathname.substring(1);
-    process.env.PGPORT = dbUrl.port || '5432';
-
-    const pool = new Pool({
-      host: dbUrl.hostname,
-      user: dbUrl.username,
-      password: decodeURIComponent(dbUrl.password),
-      database: dbUrl.pathname.substring(1),
-      port: dbUrl.port ? parseInt(dbUrl.port, 10) : 5432,
-      ssl: true,
+    return new PrismaClient({ 
+      adapter: new PrismaNeon(pool),
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
     });
-
-    return new PrismaClient({ adapter: new PrismaNeon(pool) } as never) as PrismaClient;
   }
 
   // Local Development (PostgreSQL lokal via pg pool adapter)
   const { Pool } = await import('pg');
   const { PrismaPg } = await import('@prisma/adapter-pg');
   const pool = new Pool({ connectionString: url });
-  return new PrismaClient({ adapter: new PrismaPg(pool) } as never) as PrismaClient;
+  
+  return new PrismaClient({ 
+    adapter: new PrismaPg(pool),
+    log: ['query', 'error', 'warn']
+  });
 }
 
-// Defer initialization to runtime so client bundler doesn\t load database modules
+// Defer initialization to runtime so client bundler doesn't load database modules
 let clientPromise: Promise<PrismaClient> | null = null;
+
 export const prisma = new Proxy({} as PrismaClient, {
   get(target, prop) {
     if (prop === 'then') return undefined;
+    
     if (!globalForPrisma.prisma) {
       if (!clientPromise) {
         clientPromise = createClient().then((c) => {
@@ -74,10 +78,10 @@ export const prisma = new Proxy({} as PrismaClient, {
       const delegate: Record<string, unknown> = {};
       return new Proxy(delegate as never, {
         get(_, modelProp) {
-          // Handlers for model method calls (e.g. prisma.itemCategory.findMany(...))
+          // Handlers for model method calls (e.g. prisma.user.findUnique(...))
           return (...args: unknown[]) => {
             return clientPromise!.then((c) => {
-              const model = (c as unknown as Record<string, Record<string, (...a: unknown[]) => unknown>>)[prop as string];
+              const model = (c as Record<string, Record<string, (...a: unknown[]) => unknown>>)[prop as string];
               if (!model) return undefined;
               const fn = model[modelProp as string];
               return typeof fn === 'function' ? fn.bind(model)(...args) : fn;
@@ -86,8 +90,8 @@ export const prisma = new Proxy({} as PrismaClient, {
         },
       });
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const member = (globalForPrisma.prisma as any)[prop];
+    
+    const member = (globalForPrisma.prisma as Record<string, unknown>)[prop as string];
     return typeof member === 'function' ? member.bind(globalForPrisma.prisma) : member;
   },
 });
